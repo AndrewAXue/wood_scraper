@@ -189,8 +189,8 @@ def query_url(url, ad_class, seen_ids, ad_html_class):
 def query_urls():
     composite_email_msg = ''
     #for url in KIJIJI_URLS:
-    #    time.sleep(randint(10, 40))
-    #    composite_email_msg += query_url(url, KijijiAd, seen_ids, "search-item regular-ad")
+    #   time.sleep(randint(10, 40))
+    #   composite_email_msg += query_url(url, KijijiAd, seen_ids, "search-item regular-ad")
     #for url in FACEBOOK_URLS:
     #    time.sleep(randint(10, 40))
     #    composite_email_msg += query_url(url, FacebookAd, seen_ids, "b3onmgus ph5uu5jm g5gj957u buofh1pr cbu4d94t rj1gh0hx j83agx80 rq0escxv fnqts5cd fo9g3nie n1dktuyu e5nlhep0 ecm0bbzt")
