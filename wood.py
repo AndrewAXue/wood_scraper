@@ -5,14 +5,12 @@ import time
 from random import randint
 from datetime import datetime
 import string
+from twilio.rest import Client
+
 
 from collections import OrderedDict
 
-port = 587  # For starttls
-smtp_server = "smtp.gmail.com"
-sender_email = "zhangyuqi8rankin@gmail.com"
-password = "Alex2001*"
-TARGET = 'andrew.a.xue@gmail.com'
+TARGET_NUMBER = '14156568671'
 WAIT_MINS_BETWEEN_SCRAPES = 30
 SEARCH_RADIUS_IN_KILOS = 40
 KIJIJI_URLS = [
@@ -34,16 +32,11 @@ FACEBOOK_URLS = [
     #'https://www.facebook.com/marketplace/106262189412553/search?daysSinceListed=1&query=fire%20wood&exact=false'
 ]
 CRAIGSLIST_URLS = [
-    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94085&query=firewood&search_distance=15&sort=rel',
-    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94085&query=log&search_distance=15&sort=rel',
-    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94085&query=tree&search_distance=15&sort=rel',
-    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94085&query=fire%20wood&search_distance=15&sort=rel',
-    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94085&query=stump&search_distance=15&sort=rel'
-    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94110&query=firewood&search_distance=15&sort=rel',
-    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94110&query=log&search_distance=15&sort=rel',
-    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94110&query=tree&search_distance=15&sort=rel',
-    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94110&query=fire%20wood&search_distance=15&sort=rel',
-    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94110&query=stump&search_distance=15&sort=rel'
+    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94103&query=firewood&search_distance=15&sort=rel',
+    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94103&query=log&search_distance=15&sort=rel',
+    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94103&query=tree&search_distance=15&sort=rel',
+    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94103&query=fire%20wood&search_distance=15&sort=rel',
+    'https://sfbay.craigslist.org/d/for-sale/search/sss?postal=94103&query=stump&search_distance=15&sort=rel'
 ]
 TITLE_BLACKLIST = ['$', 'christmas', 'chainsaw', 'chain saw', 'soap', 'holder', ' art', 'art ', 'care', 'maint', 'sale', 'service', ' door', 'door ', 'decor']
 DESC_BLACKLIST = ['$', 'dollar', 'christmas', 'care', 'maint', 'sale', 'service']
@@ -125,16 +118,6 @@ class CraiglistAd(Ad):
         else:
             self.price = '0'
 
-def send_email(message):
-    message = message
-
-    context = ssl.create_default_context()
-    with smtplib.SMTP(smtp_server, port) as server:
-        server.ehlo()  # Can be omitted
-        server.starttls(context=context)
-        server.ehlo()  # Can be omitted
-        server.login(sender_email, password)
-        server.sendmail(sender_email, TARGET, message)
 
 def good_ad(ad, seen_ids):
     if ad.id in seen_ids:
@@ -186,6 +169,30 @@ def query_url(url, ad_class, seen_ids, ad_html_class):
             ''', flush=True)
     return email_msg
 
+def send_sms(message):
+    # Your Account SID from twilio.com/console
+    account_sid = "ACfd16b829bd37c53950d603868d8bfff0"
+    # Your Auth Token from twilio.com/console
+    auth_token = "bb5a8f2db3ca1049e203cd5d7e6bf7e8"
+
+    client = Client(account_sid, auth_token)
+    chunks = message.split("Title: ")
+
+    cur_message = ''
+    for chunk in chunks:
+        if len(chunk) + len(cur_message) > 1600:
+            client.messages.create(
+                to="+14156568671",
+                from_="+17435003316",
+                body=cur_message)
+            cur_message = chunk
+        else:
+            cur_message += chunk
+    client.messages.create(
+        to="+14156568671",
+        from_="+17435003316",
+        body=cur_message)
+
 def query_urls():
     composite_email_msg = ''
     #for url in KIJIJI_URLS:
@@ -204,13 +211,14 @@ def query_urls():
             
         ''' + composite_email_msg
         print(composite_email_msg, flush=True)
-        send_email(composite_email_msg.encode())
+        send_sms(composite_email_msg)
     else:
         print('No new ads found', flush=True)
     seen_ids.save()
 
+
+
 print('Starting...', flush=True)
-print(f'Sending wood posts to {TARGET}', flush=True)
 while True:
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
