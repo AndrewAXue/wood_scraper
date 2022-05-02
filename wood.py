@@ -41,6 +41,9 @@ CRAIGSLIST_URLS = [
 TITLE_BLACKLIST = ['$', 'christmas', 'chainsaw', 'chain saw', 'soap', 'holder', ' art', 'art ', 'care', 'maint', 'sale', 'service', ' door', 'door ', 'decor']
 DESC_BLACKLIST = ['$', 'dollar', 'christmas', 'care', 'maint', 'sale', 'service']
 
+with open('twilio_key', 'r') as key:
+    TWILIO_KEY = key.read().strip()
+
 
 class FixedSizeArray:
     def __init__(self, size):
@@ -173,7 +176,7 @@ def send_sms(message):
     # Your Account SID from twilio.com/console
     account_sid = "ACfd16b829bd37c53950d603868d8bfff0"
     # Your Auth Token from twilio.com/console
-    auth_token = "bb5a8f2db3ca1049e203cd5d7e6bf7e8"
+    auth_token = TWILIO_KEY
 
     client = Client(account_sid, auth_token)
     chunks = message.split("Title: ")
