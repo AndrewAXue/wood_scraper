@@ -1,4 +1,3 @@
-import smtplib, ssl
 import requests
 from bs4 import BeautifulSoup
 import time
@@ -93,11 +92,15 @@ class Ad:
 class KijijiAd(Ad):
     def __init__(self, ad_html):
         super(KijijiAd, self).__init__(ad_html)
-        self.title = self.filter_printable(self.ad_html.find("div", {"class": "title"}).a.text.strip().lower())
-        self.desc = self.filter_printable(" ".join(self.ad_html.find("div", {"class": "description"}).text.lower().split()))
-        self.link = 'https:/www.kijiji.ca' + self.ad_html.find("div", {"class": "title"}).a['href']
-        self.id = self.ad_html['data-listing-id']
-        self.price = self.ad_html.find("div", {"class": "price"}).text.strip()
+        self.title = self.filter_printable(self.ad_html.find("h3", {"data-testid": "listing-title"}).text.strip().lower())
+        self.desc = self.filter_printable(self.ad_html.find("p", {"data-testid": "listing-description"}).text.strip().lower())
+        self.link = 'https:/www.kijiji.ca' + self.ad_html.find("a", {"data-testid": "listing-link"})['href']
+        self.id = self.ad_html['data-listingid']
+        self.price = self.ad_html.find("p", {"data-testid": "listing-price"})
+        if self.price:
+            self.price = self.price.text.strip()
+        else:
+            self.price = '0'
 
 class FacebookAd(Ad):
     def __init__(self, ad_html):
@@ -123,9 +126,11 @@ class CraiglistAd(Ad):
 
 
 def good_ad(ad, seen_ids):
+    if 'free' in ad.title or 'free' in ad.desc:
+        return True
     if ad.id in seen_ids:
         return False
-    if '$' in ad.price:
+    if ad.price != '$0.00' and '$' in ad.price:
         return False
     for title_black in TITLE_BLACKLIST:
         if title_black in ad.title:
@@ -154,7 +159,8 @@ def query_url(url, ad_class, seen_ids, ad_html_class):
     soup = BeautifulSoup(data.text, 'html.parser')
     ads = list(map(lambda x: ad_class(x), soup.find_all("article", {"class": ad_html_class}))) + \
           list(map(lambda x: ad_class(x), soup.find_all("div", {"class": ad_html_class}))) + \
-          list(map(lambda x: ad_class(x), soup.find_all("li", {"class": ad_html_class})))
+          list(map(lambda x: ad_class(x), soup.find_all("li", {"class": ad_html_class}))) + \
+          list(map(lambda x: ad_class(x), soup.find_all("section", {"data-testid": 'listing-card'}))) # Kijiji specific
     email_msg = ''
     if len(ads) == 0:
         print(f'Url {url} did not have any ads')
@@ -186,27 +192,27 @@ def send_sms(message):
         if len(chunk) + len(cur_message) > 1600:
             client.messages.create(
                 to="+14156568671",
-                from_="+17435003316",
+                from_="+18333191618",
                 body=cur_message)
             cur_message = chunk
         else:
             cur_message += chunk
     client.messages.create(
         to="+14156568671",
-        from_="+17435003316",
+        from_="+18333191618",
         body=cur_message)
 
 def query_urls():
     composite_email_msg = ''
-    #for url in KIJIJI_URLS:
-    #   time.sleep(randint(10, 40))
-    #   composite_email_msg += query_url(url, KijijiAd, seen_ids, "search-item regular-ad")
-    #for url in FACEBOOK_URLS:
-    #    time.sleep(randint(10, 40))
-    #    composite_email_msg += query_url(url, FacebookAd, seen_ids, "b3onmgus ph5uu5jm g5gj957u buofh1pr cbu4d94t rj1gh0hx j83agx80 rq0escxv fnqts5cd fo9g3nie n1dktuyu e5nlhep0 ecm0bbzt")
-    for url in CRAIGSLIST_URLS:
-        time.sleep(randint(10, 40))
-        composite_email_msg += query_url(url, CraiglistAd, seen_ids, "result-row")
+    for url in KIJIJI_URLS:
+      time.sleep(randint(10, 40))
+      composite_email_msg += query_url(url, KijijiAd, seen_ids, "search-item regular-ad")
+    for url in FACEBOOK_URLS:
+       time.sleep(randint(10, 40))
+       composite_email_msg += query_url(url, FacebookAd, seen_ids, "b3onmgus ph5uu5jm g5gj957u buofh1pr cbu4d94t rj1gh0hx j83agx80 rq0escxv fnqts5cd fo9g3nie n1dktuyu e5nlhep0 ecm0bbzt")
+    # for url in CRAIGSLIST_URLS:
+    #     time.sleep(randint(10, 40))
+    #     composite_email_msg += query_url(url, CraiglistAd, seen_ids, "result-row")
 
     if composite_email_msg:
         composite_email_msg = '''
